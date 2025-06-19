@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sekata</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div id="game-container">
+      <h1>Sekata</h1>
+      <div id="connection-area">
+        <input type="text" id="player-name-input" placeholder="Nama Pemain" />
+        <button id="create-game-btn">Buat Game Baru</button>
+        <input type="text" id="join-game-id-input" placeholder="ID Game" />
+        <button id="join-game-btn">Gabung Game</button>
+      </div>
+
+      <div id="game-area" style="display: none">
+        <p>ID Game Anda: <strong id="game-id-display"></strong></p>
+        <p>Host: <strong id="host-id-display"></strong></p>
+        <p>
+          Pemain Online: <span id="current-players-count">0</span> /
+          <span id="min-players-to-start">2</span>
+        </p>
+        <button id="start-game-btn" style="display: none">Mulai Game</button>
+
+        <p>Giliran: <strong id="current-turn-display"></strong></p>
+        <p
+          id="winner-display"
+          style="display: none; color: green; font-weight: bold"
+        >
+          Pemenang: <span id="winner-name"></span>!
+        </p>
+
+        <div id="table-area">
+          <h3>Kartu di Meja:</h3>
+          <div id="card-on-table"></div>
+        </div>
+
+        <div id="player-hand-container">
+          <h3>Tangan Anda:</h3>
+          <div id="player-hand"></div>
+        </div>
+
+        <div id="action-area">
+          <h4>Aksi:</h4>
+          <div class="input-group">
+            <button id="submit-before-btn" disabled>Sambung Depan</button>
+            <div id="selected-card-preview" class="card-preview">
+              Pilih Kartu
+            </div>
+            <button id="submit-after-btn" disabled>Sambung Belakang</button>
+          </div>
+          <button id="check-turn-btn" disabled>Check (Lewati Giliran)</button>
+        </div>
+
+        <div id="scores-area">
+          <h3>Jumlah Kartu Pemain:</h3>
+          <ul id="score-list"></ul>
+        </div>
+        <div id="messages"></div>
+      </div>
+    </div>
+    <script src="/static/js/game.js"></script>
+  </body>
+</html>
