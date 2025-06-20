@@ -259,7 +259,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
             game.discard_pile.append(game.card_on_table)
             
             # Update kartu di meja dengan kata baru yang terbentuk
-            game.card_on_table = formed_word
+            game.card_on_table = submitted_fragment.upper()
 
             # Beri skor (opsional, jika ada)
             score_earned = calculate_score_for_word(formed_word)
