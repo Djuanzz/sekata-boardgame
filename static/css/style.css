@@ -261,6 +261,79 @@ h4 {
   color: #721c24;
 }
 
+.helper-card-btn {
+  background-color: #28a745;
+  color: white;
+  border: 2px solid #1e7e34;
+  padding: 5px 10px;
+  margin: 0 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.helper-card-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.helper-card-btn.selected-helper {
+  background-color: #007bff;
+  border-color: #0062cc;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.helper-position-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin: 0 3px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.helper-position-btn.selected {
+  background-color: #007bff;
+}
+
+#word-formation-preview {
+  background-color: #f8f9fa;
+  border: 1px dashed #dee2e6;
+  min-height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  margin: 15px 0;
+}
+
+.preview-card {
+  padding: 10px;
+  margin: 0 5px;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.table-preview {
+  background-color: #ffc107;
+  border: 2px solid #e0a800;
+}
+
+.helper-preview {
+  background-color: #28a745;
+  border: 2px solid #1e7e34;
+  color: white;
+}
+
+.hand-preview {
+  background-color: #17a2b8;
+  border: 2px solid #138496;
+  color: white;
+}
+
 @media (max-width: 600px) {
   #game-container {
     padding: 15px;

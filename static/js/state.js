@@ -15,6 +15,7 @@ const listeners = {
   message: [],
   selectedHandCard: [],
   helperCard: [],
+  usedHelperCard: [],
 };
 
 // Fungsi untuk memberi tahu listener tentang perubahan state
@@ -39,10 +40,18 @@ export const getGameData = () => _gameData;
 export const setGameData = (data) => {
   _gameData = data;
   // Sinkronkan helper card jika ada
-  if (data && data.helper_cards) {
-    setHelperCard(data.helper_cards);
-  } else {
-    setHelperCard([]);
+  if (data) {
+    if (data.helper_cards) {
+      setHelperCard(data.helper_cards);
+    } else {
+      setHelperCard([]);
+    }
+
+    if (data.used_helper_cards) {
+      setUsedHelperCard(data.used_helper_cards);
+    } else {
+      setUsedHelperCard([]);
+    }
   }
   notifyListeners("gameData", _gameData);
 };
@@ -69,6 +78,14 @@ export const setHelperCard = (cards) => {
   notifyListeners("helperCard", _helperCard);
 };
 
+let _usedHelperCard = [];
+
+export const getUsedHelperCard = () => _usedHelperCard;
+export const setUsedHelperCard = (cards) => {
+  _usedHelperCard = Array.isArray(cards) ? cards : [];
+  notifyListeners("usedHelperCard", _usedHelperCard);
+};
+
 // Fungsi untuk mendaftar listener
 export const subscribe = (stateName, callback) => {
   if (listeners[stateName]) {
@@ -93,6 +110,9 @@ export const subscribe = (stateName, callback) => {
       case "helperCard":
         callback(_helperCard);
         break;
+      case "usedHelperCard":
+        callback(_usedHelperCard);
+        break;
     }
   } else {
     console.warn(`State '${stateName}' tidak memiliki listener.`);
@@ -114,6 +134,7 @@ export const resetAllState = () => {
   _message = { text: "", type: "" };
   _selectedHandCard = null;
   _helperCard = [];
+  _usedHelperCard = [];
   // Notify all listeners of reset
   notifyListeners("currentPlayerId", _currentPlayerId);
   notifyListeners("currentGameId", _currentGameId);
@@ -121,4 +142,5 @@ export const resetAllState = () => {
   notifyListeners("message", _message);
   notifyListeners("selectedHandCard", _selectedHandCard);
   notifyListeners("helperCard", _helperCard);
+  notifyListeners("usedHelperCard", _usedHelperCard);
 };

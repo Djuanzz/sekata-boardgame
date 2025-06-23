@@ -102,7 +102,8 @@ class Game:
         self.discard_pile = [] # Tumpukan buangan
 
         self.card_on_table = None # Hanya satu kartu terbuka di meja
-        self.helper_cards = []   # List kartu helper global (3 kartu)
+        self.helper_cards = []   # Available helper cards
+        self.used_helper_cards = []  # Helper cards that have been used
         self.current_turn_index = 0 # Indeks pemain yang gilirannya saat ini
 
         self.game_started = False
@@ -220,6 +221,14 @@ class Game:
                 return frag.upper()
         return None
 
+    def use_helper_card(self, card_fragment):
+        """Mark a helper card as used."""
+        if card_fragment.upper() in self.helper_cards:
+            self.helper_cards.remove(card_fragment.upper())
+            self.used_helper_cards.append(card_fragment.upper())
+            return True
+        return False
+
 
     def get_game_state_for_player(self, viewer_player_id):
         players_data = {}
@@ -235,7 +244,8 @@ class Game:
             "game_id": self.game_id,
             "host_id": self.host_id,
             "card_on_table": self.card_on_table,
-            "helper_cards": self.helper_cards,  # List helper cards global
+            "helper_cards": self.helper_cards,
+            "used_helper_cards": self.used_helper_cards,
             "current_turn": self.get_current_player_id(),
             "players": players_data,
             "main_deck_count": len(self.main_deck.cards),

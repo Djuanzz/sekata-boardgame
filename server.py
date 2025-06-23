@@ -241,6 +241,10 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 player_id = request_data.get('player_id')
                 submitted_fragment = request_data.get('fragment')
                 position = request_data.get('position')
+                
+                # New parameters for helper card usage
+                helper_card = request_data.get('helper_card')
+                helper_position = request_data.get('helper_position')  # 'before' or 'after' the table card
 
                 if not all([game_id, player_id, submitted_fragment, position]):
                     self.send_json_response(400, {"success": False, "message": "Data tidak lengkap."})
@@ -252,8 +256,8 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                     return
                 
                 if not game.game_started:
-                     self.send_json_response(400, {"success": False, "message": "Game belum dimulai."})
-                     return
+                    self.send_json_response(400, {"success": False, "message": "Game belum dimulai."})
+                    return
 
                 if game.current_turn_index is None or game.get_current_player_id() != player_id:
                     self.send_json_response(403, {"success": False, "message": "Bukan giliran Anda."})
@@ -261,24 +265,26 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 
                 player = game.players[player_id]
 
-                is_helper_used = (
-                    hasattr(game, "helper_cards")
-                    and game.helper_cards
-                    and submitted_fragment.upper() in [h.upper() for h in game.helper_cards]
-                )
-                if not is_helper_used and not player.remove_card(submitted_fragment.upper()):
-                    self.send_json_response(400, {"success": False, "message": f"Anda tidak memiliki kartu '{submitted_fragment}' di tangan maupun sebagai helper."})
+                # Handle regular card removal from player's hand
+                if not player.remove_card(submitted_fragment.upper()):
+                    self.send_json_response(400, {"success": False, "message": f"Anda tidak memiliki kartu '{submitted_fragment}' di tangan."})
                     return
-
-                if is_helper_used:
-                    game.helper_cards.remove(submitted_fragment.upper())
                 
-                if not game.card_on_table:
-                     self.send_json_response(500, {"success": False, "message": "Tidak ada kartu di meja untuk disambung."})
-                     return
-
+                # Handle helper card logic if requested
+                effective_table_card = game.card_on_table
+                used_helper = False
+                
+                if helper_card and helper_card.upper() in game.helper_cards:
+                    used_helper = True
+                    # Apply helper card to the table card
+                    if helper_position == 'before':
+                        effective_table_card = helper_card.upper() + game.card_on_table
+                    else:
+                        effective_table_card = game.card_on_table + helper_card.upper()
+                
+                # Now validate word formation against the effective table card
                 is_valid, msg, formed_word = validate_word_formation(
-                    game.card_on_table, submitted_fragment, position, DICTIONARY
+                    effective_table_card, submitted_fragment, position, DICTIONARY
                 )
 
                 if not is_valid:
@@ -286,6 +292,11 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                     self.send_json_response(400, {"success": False, "message": msg})
                     return
                 
+                # If helper card was used, mark it as used
+                if used_helper:
+                    game.use_helper_card(helper_card.upper())
+                
+                # Update game state
                 game.discard_pile.append(game.card_on_table)
                 game.card_on_table = submitted_fragment.upper()
                 score_earned = calculate_score_for_word(formed_word)
@@ -297,8 +308,16 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
 
                 game.next_turn(action_was_check=False)
 
-                print(f"[Thread-{threading.get_ident()}] Pemain {player_id} menyambung '{submitted_fragment}'. Kata terbentuk: '{formed_word}'.")
-                self.send_json_response(200, {"success": True, "message": f"Berhasil menyambung kata menjadi '{formed_word}'.", "score_earned": score_earned})
+                print(f"[Thread-{threading.get_ident()}] Pemain {player_id} menyambung '{submitted_fragment}' " +
+                      (f"dengan helper '{helper_card}'. " if used_helper else "") +
+                      f"Kata terbentuk: '{formed_word}'.")
+                
+                self.send_json_response(200, {
+                    "success": True, 
+                    "message": f"Berhasil menyambung kata menjadi '{formed_word}'.", 
+                    "score_earned": score_earned,
+                    "helper_used": used_helper
+                })
 
             except Exception as e:
                 print(f"Error submitting fragment: {e}")

@@ -37,11 +37,11 @@ export const getGameStatus = async (gameId, playerId) => {
   return response.json();
 };
 
-export const submitFragment = async (gameId, playerId, fragment, position) => {
+export const submitFragment = async (gameId, requestData) => {
   const response = await fetch(`/submit_fragment/${gameId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ player_id: playerId, fragment, position }),
+    body: JSON.stringify(requestData),
   });
   return response.json();
 };

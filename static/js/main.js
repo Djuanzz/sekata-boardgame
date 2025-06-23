@@ -17,6 +17,10 @@ const useHelperBtn = document.getElementById("use-helper-btn");
 
 let pollInterval = null;
 
+// Global variables to track selections
+let selectedHelperCard = null;
+let selectedHelperPosition = null; // 'before' or 'after' the table card
+
 // --- Polling Logic ---
 const pollGameStatus = async () => {
   const currentGameId = state.getCurrentGameId();
@@ -136,41 +140,50 @@ const handleStartGame = async () => {
   }
 };
 
-const handleSubmitFragment = async (position, overrideCard = null) => {
+const handleSubmitFragment = async (position) => {
   state.clearMessage();
   const currentGameId = state.getCurrentGameId();
   const currentPlayerId = state.getCurrentPlayerId();
-  const selectedHandCard = overrideCard || state.getSelectedHandCard();
-
-  if (!selectedHandCard) {
-    state.setMessage("Pilih kartu dari tangan Anda terlebih dahulu.", "error");
+  const selectedCard = state.getSelectedHandCard();
+  const gameData = state.getGameData();
+  
+  if (!currentGameId || !currentPlayerId || !selectedCard || !gameData) return;
+  
+  if (gameData.current_turn !== currentPlayerId) {
+    state.setMessage("Bukan giliran Anda!", "error");
     return;
   }
-  if (!currentGameId || !currentPlayerId) {
-    state.setMessage("Anda belum di game!", "error");
-    return;
-  }
-
+  
   try {
-    const data = await api.submitFragment(
+    const requestData = { 
+      player_id: currentPlayerId,
+      fragment: selectedCard,
+      position: position
+    };
+    
+    // Add helper card data if selected
+    if (selectedHelperCard) {
+      requestData.helper_card = selectedHelperCard;
+      requestData.helper_position = selectedHelperPosition;
+    }
+    
+    const response = await api.submitFragment(
       currentGameId,
-      currentPlayerId,
-      selectedHandCard,
-      position
+      requestData
     );
-    if (data.success) {
-      state.setMessage(data.message, "success");
-      state.setSelectedHandCard(null); // Reset selected card in state
-      ui.resetCardSelectionUI(); // Reset UI
+    
+    if (response.success) {
+      state.setMessage(`${response.message} ${response.score_earned ? `+${response.score_earned} poin!` : ""}`, "success");
+      state.setSelectedHandCard(null);
+      selectedHelperCard = null;
+      selectedHelperPosition = null;
+      ui.resetCardSelectionUI();
     } else {
-      state.setMessage(`Gagal menyambung kata: ${data.message}`, "error");
+      state.setMessage(response.message, "error");
     }
   } catch (error) {
     console.error("Error submitting fragment:", error);
-    state.setMessage(
-      "Terjadi kesalahan saat menyambung kata. Coba lagi.",
-      "error"
-    );
+    state.setMessage("Terjadi kesalahan saat mengirim potongan kata.", "error");
   }
 };
 
@@ -218,8 +231,56 @@ const handleCardClick = (cardValue) => {
 const handleHelperCardClick = async (helperCard) => {
   const currentGameId = state.getCurrentGameId();
   const currentPlayerId = state.getCurrentPlayerId();
-  if (!currentGameId || !currentPlayerId || !helperCard) return;
-  await handleSubmitFragment("before", helperCard);
+  const gameData = state.getGameData();
+  
+  if (!currentGameId || !currentPlayerId || !gameData) return;
+  
+  // Only allow helper card use if it's your turn
+  if (gameData.current_turn !== currentPlayerId) {
+    state.setMessage("Bukan giliran Anda untuk menggunakan kartu helper!", "error");
+    return;
+  }
+  
+  // Toggle selection of helper card
+  if (selectedHelperCard === helperCard) {
+    selectedHelperCard = null;
+    document.querySelectorAll('.helper-card-btn').forEach(btn => {
+      btn.classList.remove('selected-helper');
+    });
+    
+    // Reset helper position buttons
+    document.getElementById('helper-position-buttons').style.display = 'none';
+  } else {
+    selectedHelperCard = helperCard;
+    
+    // Update UI to show it's selected
+    document.querySelectorAll('.helper-card-btn').forEach(btn => {
+      btn.classList.remove('selected-helper');
+      if (btn.textContent === helperCard) {
+        btn.classList.add('selected-helper');
+      }
+    });
+    
+    // Show helper position buttons
+    document.getElementById('helper-position-buttons').style.display = 'block';
+  }
+};
+
+const handleHelperPositionSelect = (position) => {
+  selectedHelperPosition = position;
+  
+  // Update UI to show selected position
+  document.querySelectorAll('.helper-position-btn').forEach(btn => {
+    btn.classList.remove('selected');
+    if (btn.dataset.position === position) {
+      btn.classList.add('selected');
+    }
+  });
+  
+  // Inform user to select a card from hand
+  if (selectedHelperCard && selectedHelperPosition) {
+    state.setMessage("Sekarang pilih kartu dari tangan Anda dan posisi untuk menyambungnya", "info");
+  }
 };
 
 // --- Subscriptions and Initial Setup ---
@@ -278,6 +339,55 @@ document.addEventListener("DOMContentLoaded", () => {
   checkTurnBtn.addEventListener("click", handleCheckTurn);
   useHelperBtn.addEventListener("click", handleUseHelper);
 
+  // Set up helper position buttons
+  document.querySelectorAll('.helper-position-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      handleHelperPositionSelect(btn.dataset.position);
+      
+      // Update the word formation preview
+      ui.updateWordPreview(
+        state.getGameData()?.card_on_table,
+        selectedHelperCard,
+        selectedHelperPosition,
+        state.getSelectedHandCard(),
+        null // This will be set when they click before/after buttons
+      );
+    });
+  });
+
+  // Update event listeners for before/after buttons to update word preview
+  submitBeforeBtn.addEventListener("click", () => {
+    // Update preview with final position
+    ui.updateWordPreview(
+      state.getGameData()?.card_on_table,
+      selectedHelperCard,
+      selectedHelperPosition,
+      state.getSelectedHandCard(),
+      'before'
+    );
+    
+    // Small delay to show preview before submitting
+    setTimeout(() => {
+      handleSubmitFragment("before");
+    }, 500);
+  });
+
+  submitAfterBtn.addEventListener("click", () => {
+    // Update preview with final position
+    ui.updateWordPreview(
+      state.getGameData()?.card_on_table,
+      selectedHelperCard,
+      selectedHelperPosition,
+      state.getSelectedHandCard(),
+      'after'
+    );
+    
+    // Small delay to show preview before submitting
+    setTimeout(() => {
+      handleSubmitFragment("after");
+    }, 500);
+  });
+  
   // Initial UI state
   ui.updateGameUI(state.getGameData()); // Sembunyikan area game sampai pemain membuat/bergabung
   ui.updateActionButtons(false, false, false); // Nonaktifkan tombol aksi awal
