@@ -5,10 +5,11 @@ import random
 import string
 import os
 import urllib.parse
-import threading # <-- IMPOR BARU untuk multithreading
-from socketserver import ThreadingMixIn # <-- IMPOR BARU untuk membuat server multithreaded
+import threading # IMPOR BARU untuk multithreading
+from socketserver import ThreadingMixIn # IMPOR BARU untuk membuat server multithreaded
 
 # IMPOR DARI MODELS DAN UTILS
+# Pastikan file models.py dan utils.py ada di direktori yang sama
 from models import Game, Player, POTONGAN_KATA, HAND_SIZE, MIN_PLAYERS_TO_START
 from utils import is_word_in_dictionary, validate_word_formation, calculate_score_for_word
 
@@ -21,9 +22,9 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True       # Memastikan thread-child akan mati saat server utama berhenti
     allow_reuse_address = True  # Mencegah error "Address already in use" saat server di-restart cepat
 
-# --- Global Game State dan Lock ---
+# --- Global Game State dan Lock untuk Keamanan Thread ---
 GAMES = {} # {game_id: GameInstance}
-GAMES_LOCK = threading.Lock() # <-- LOCK BARU untuk melindungi akses ke dictionary GAMES
+GAMES_LOCK = threading.Lock() # LOCK BARU untuk melindungi akses ke dictionary GAMES
 
 # --- Load Dictionary ---
 DICTIONARY = set()
@@ -39,8 +40,16 @@ except FileNotFoundError:
     DICTIONARY.update(set(word.upper() for word in POTONGAN_KATA)) # Fallback
     DICTIONARY.update({"KULIT", "RUMAH", "KOTA", "MATA", "HATI", "BUKU", "PENA", "PINTAR", "AKAN"})
 
-# --- HTTP Request Handler (tidak ada perubahan di dalam kelas ini, hanya penggunaannya yang berbeda) ---
+# --- HTTP Request Handler dengan Logging Thread ---
 class SeKataHTTPHandler(SimpleHTTPRequestHandler):
+
+    def _log_request_with_thread(self, method):
+        """Mencatat informasi request beserta ID thread yang menanganinya."""
+        thread_id = threading.get_ident()
+        print(
+            f"[Thread-{thread_id}] Menerima request: {method} {self.path} "
+            f"dari {self.client_address[0]}"
+        )
 
     def read_request_body(self):
         """Membaca body request POST dan mengurai JSON."""
@@ -58,8 +67,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(data).encode('utf-8'))
 
     def do_GET(self):
-        # ... (Isi fungsi do_GET tetap sama, tidak perlu diubah) ...
-        # ... Kita hanya akan memodifikasi handler API di bawahnya ...
+        self._log_request_with_thread("GET")
         parsed_path = urllib.parse.urlparse(self.path)
         path = parsed_path.path
 
@@ -101,9 +109,8 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
         else:
             self.send_error(404, "Not Found")
 
-
     def do_POST(self):
-        # ... (Isi fungsi do_POST tetap sama, tidak perlu diubah) ...
+        self._log_request_with_thread("POST")
         parsed_path = urllib.parse.urlparse(self.path)
         path = parsed_path.path
 
@@ -120,7 +127,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
         else:
             self.send_error(404, "Not Found")
 
-    # --- Handler Metode API (sekarang menggunakan lock) ---
+    # --- Handler Metode API (sekarang thread-safe dengan lock) ---
 
     def handle_create_game(self):
         try:
@@ -133,11 +140,10 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
             game_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             new_game = Game(game_id, player_id)
             
-            # Melindungi operasi penulisan ke dictionary global GAMES
             with GAMES_LOCK:
                 GAMES[game_id] = new_game
             
-            print(f"Game baru dibuat: {game_id} oleh {player_id}")
+            print(f"[Thread-{threading.get_ident()}] Game baru dibuat: {game_id} oleh {player_id}")
             self.send_json_response(200, {"success": True, "game_id": game_id})
 
         except Exception as e:
@@ -154,11 +160,9 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 self.send_json_response(400, {"success": False, "message": "Game ID and Player ID required."})
                 return
 
-            # Melindungi operasi baca dan tulis pada state game
             with GAMES_LOCK:
                 game = GAMES.get(game_id)
                 if not game:
-                    # Rilis lock sebelum mengirim respons
                     self.send_json_response(404, {"success": False, "message": "Game not found."})
                     return
                 
@@ -167,7 +171,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                     return
 
                 if game.add_player(player_id):
-                    print(f"Pemain {player_id} bergabung ke game {game_id}")
+                    print(f"[Thread-{threading.get_ident()}] Pemain {player_id} bergabung ke game {game_id}")
                     self.send_json_response(200, {"success": True, "message": "Joined game successfully."})
                 else:
                     self.send_json_response(400, {"success": False, "message": "Player sudah ada di game."})
@@ -177,12 +181,12 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
             self.send_json_response(500, {"success": False, "message": "Internal server error."})
 
     def handle_start_game(self, path):
-        try:
-            game_id = path.split('/')[2]
-            request_data = self.read_request_body()
-            player_id = request_data.get('player_id')
+        with GAMES_LOCK:
+            try:
+                game_id = path.split('/')[2]
+                request_data = self.read_request_body()
+                player_id = request_data.get('player_id')
 
-            with GAMES_LOCK:
                 game = GAMES.get(game_id)
                 if not game:
                     self.send_json_response(404, {"success": False, "message": "Game tidak ditemukan."})
@@ -197,9 +201,9 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                     self.send_json_response(200, {"success": True, "message": msg})
                 else:
                     self.send_json_response(400, {"success": False, "message": msg})
-        except Exception as e:
-            print(f"Error starting game: {e}")
-            self.send_json_response(500, {"success": False, "message": "Internal server error."})
+            except Exception as e:
+                print(f"Error starting game: {e}")
+                self.send_json_response(500, {"success": False, "message": "Internal server error."})
 
     def handle_game_status(self, path, query_string):
         try:
@@ -211,7 +215,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 self.send_json_response(400, {"success": False, "message": "Game ID and Player ID required."})
                 return
 
-            # Melindungi operasi pembacaan state game agar tidak terjadi "dirty read"
+            status = None
             with GAMES_LOCK:
                 game = GAMES.get(game_id)
                 if not game:
@@ -221,11 +225,8 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 if player_id not in game.players:
                      self.send_json_response(403, {"success": False, "message": "Player not in this game."})
                      return
-
-                # Mengambil state di dalam lock untuk memastikan data konsisten
                 status = game.get_game_state_for_player(player_id)
             
-            # Mengirim respons di luar lock
             self.send_json_response(200, {"success": True, "data": status})
 
         except Exception as e:
@@ -233,7 +234,6 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
             self.send_json_response(500, {"success": False, "message": "Internal server error."})
 
     def handle_submit_fragment(self, path):
-        # Fungsi ini melakukan banyak modifikasi state, jadi harus dilindungi lock
         with GAMES_LOCK:
             try:
                 game_id = path.split('/')[2]
@@ -272,16 +272,13 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
 
                 if is_helper_used:
                     game.helper_cards.remove(submitted_fragment.upper())
-
+                
                 if not game.card_on_table:
                      self.send_json_response(500, {"success": False, "message": "Tidak ada kartu di meja untuk disambung."})
                      return
 
                 is_valid, msg, formed_word = validate_word_formation(
-                    game.card_on_table,
-                    submitted_fragment,
-                    position,
-                    DICTIONARY
+                    game.card_on_table, submitted_fragment, position, DICTIONARY
                 )
 
                 if not is_valid:
@@ -300,7 +297,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
 
                 game.next_turn(action_was_check=False)
 
-                print(f"Pemain {player_id} menyambung '{submitted_fragment}'. Kata terbentuk: '{formed_word}'.")
+                print(f"[Thread-{threading.get_ident()}] Pemain {player_id} menyambung '{submitted_fragment}'. Kata terbentuk: '{formed_word}'.")
                 self.send_json_response(200, {"success": True, "message": f"Berhasil menyambung kata menjadi '{formed_word}'.", "score_earned": score_earned})
 
             except Exception as e:
@@ -308,7 +305,6 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 self.send_json_response(500, {"success": False, "message": f"Internal server error: {e}"})
 
     def handle_check_turn(self, path):
-        # Fungsi ini juga memodifikasi state (giliran pemain), jadi perlu lock
         with GAMES_LOCK:
             try:
                 game_id = path.split('/')[2]
@@ -339,14 +335,14 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 else:
                     self.send_json_response(200, {"success": True, "message": "Giliran dilewati."})
 
-                print(f"Pemain {player_id} melewati giliran di game {game_id}.")
+                print(f"[Thread-{threading.get_ident()}] Pemain {player_id} melewati giliran di game {game_id}.")
 
             except Exception as e:
                 print(f"Error passing turn: {e}")
                 self.send_json_response(500, {"success": False, "message": f"Internal server error: {e}"})
 
-# --- Main Server Setup (Menggunakan server multithreaded) ---
-def run_server(server_class=ThreadingHTTPServer, handler_class=SeKataHTTPHandler, port=8000): # <-- UBAH KELAS SERVER DEFAULT
+# --- Main Server Setup ---
+def run_server(server_class=ThreadingHTTPServer, handler_class=SeKataHTTPHandler, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     print(f"Memulai HTTP server SeKata (Multithreaded) di http://localhost:{port}/")
