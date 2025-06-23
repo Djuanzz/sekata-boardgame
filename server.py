@@ -244,7 +244,7 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 
                 # New parameters for helper card usage
                 helper_card = request_data.get('helper_card')
-                helper_position = request_data.get('helper_position')  # 'before' or 'after' the table card
+                helper_position = request_data.get('helper_position')  # Will be the same as 'position'
 
                 if not all([game_id, player_id, submitted_fragment, position]):
                     self.send_json_response(400, {"success": False, "message": "Data tidak lengkap."})
@@ -276,10 +276,12 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
                 
                 if helper_card and helper_card.upper() in game.helper_cards:
                     used_helper = True
-                    # Apply helper card to the table card
+                    # Apply helper card based on position - same as main card
                     if helper_position == 'before':
+                        # For 'before', helper goes first, then the table card
                         effective_table_card = helper_card.upper() + game.card_on_table
-                    else:
+                    else:  # 'after'
+                        # For 'after', table card first, then helper
                         effective_table_card = game.card_on_table + helper_card.upper()
                 
                 # Now validate word formation against the effective table card

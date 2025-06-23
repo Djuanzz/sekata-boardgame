@@ -1,4 +1,5 @@
 // sekata_game/static/js/ui.js
+import * as state from "./state.js";
 
 const gameArea = document.getElementById("game-area");
 const gameIdDisplay = document.getElementById("game-id-display");
@@ -137,21 +138,25 @@ export const updateActionButtons = (
 };
 
 // Reset seleksi kartu di UI
-export const resetCardSelectionUI = () => {
+export const resetCardSelectionUI = (tableCard = null) => {
   selectedCardPreviewDiv.textContent = "Pilih Kartu";
   document
     .querySelectorAll("#player-hand .card.selected")
     .forEach((c) => c.classList.remove("selected"));
   
-  // Also reset helper card selection
+  // Reset helper card selection
   document.querySelectorAll('.helper-card-btn').forEach(btn => {
     btn.classList.remove('selected-helper');
   });
   
-  document.getElementById('helper-position-buttons').style.display = 'none';
+  document.getElementById('remove-helper-btn').style.display = 'none';
+  document.getElementById('helper-action-buttons').style.display = 'none';
+  document.querySelectorAll('#helper-action-buttons button').forEach(btn => {
+    btn.classList.remove('active-position');
+  });
   
-  // Reset word preview
-  updateWordPreview(state.getGameData()?.card_on_table, null, null, null, null);
+  // Reset word preview - use the passed tableCard instead of relying on state
+  updateWordPreview(tableCard, null, null, null, null);
 };
 
 // Update tampilan game berdasarkan gameData
@@ -234,7 +239,7 @@ export const updateGameUI = (
   updateActionButtons(isMyTurn, isCardSelected, isGameStarted);
 };
 
-// Add a word formation preview UI component
+// Replace the existing updateWordPreview function
 export const updateWordPreview = (tableCard, helperCard, helperPos, handCard, handPos) => {
   const previewDiv = document.getElementById('word-formation-preview');
   if (!previewDiv) return;
@@ -246,55 +251,59 @@ export const updateWordPreview = (tableCard, helperCard, helperPos, handCard, ha
     return;
   }
   
-  // Create the table card element
+  // Create elements
   const tableCardElem = document.createElement('span');
   tableCardElem.textContent = tableCard;
   tableCardElem.className = 'preview-card table-preview';
   
-  // Add helper card if selected
-  const helperCardElem = helperCard ? document.createElement('span') : null;
-  if (helperCardElem) {
+  // Elements for selected cards
+  let helperCardElem = null;
+  if (helperCard) {
+    helperCardElem = document.createElement('span');
     helperCardElem.textContent = helperCard;
     helperCardElem.className = 'preview-card helper-preview';
   }
   
-  // Add playing card if selected
-  const handCardElem = handCard ? document.createElement('span') : null;
-  if (handCardElem) {
+  let handCardElem = null;
+  if (handCard) {
+    handCardElem = document.createElement('span');
     handCardElem.textContent = handCard;
     handCardElem.className = 'preview-card hand-preview';
   }
   
-  // Create final preview based on positioning
-  if (helperCard && helperPos === 'before' && handCard && handPos === 'before') {
-    previewDiv.appendChild(handCardElem);
-    previewDiv.appendChild(helperCardElem);
-    previewDiv.appendChild(tableCardElem);
-  } else if (helperCard && helperPos === 'before' && handCard && handPos === 'after') {
-    previewDiv.appendChild(helperCardElem);
-    previewDiv.appendChild(tableCardElem);
-    previewDiv.appendChild(handCardElem);
-  } else if (helperCard && helperPos === 'after' && handCard && handPos === 'before') {
-    previewDiv.appendChild(handCardElem);
-    previewDiv.appendChild(tableCardElem);
-    previewDiv.appendChild(helperCardElem);
-  } else if (helperCard && helperPos === 'after' && handCard && handPos === 'after') {
-    previewDiv.appendChild(tableCardElem);
-    previewDiv.appendChild(helperCardElem);
-    previewDiv.appendChild(handCardElem);
-  } else if (handCard && handPos === 'before') {
-    previewDiv.appendChild(handCardElem);
-    previewDiv.appendChild(tableCardElem);
-  } else if (handCard && handPos === 'after') {
-    previewDiv.appendChild(tableCardElem);
-    previewDiv.appendChild(handCardElem);
-  } else if (helperCard && helperPos === 'before') {
-    previewDiv.appendChild(helperCardElem);
-    previewDiv.appendChild(tableCardElem);
-  } else if (helperCard && helperPos === 'after') {
-    previewDiv.appendChild(tableCardElem);
-    previewDiv.appendChild(helperCardElem);
-  } else {
-    previewDiv.appendChild(tableCardElem);
+  // Arrange cards based on positions
+  const cardElements = [];
+  
+  // Helper card with position
+  if (helperCardElem && helperPos === 'before') {
+    cardElements.push({element: helperCardElem, order: 1});
+  }
+  
+  // Table card is always in the middle
+  cardElements.push({element: tableCardElem, order: 2});
+  
+  // Helper card after table
+  if (helperCardElem && helperPos === 'after') {
+    cardElements.push({element: helperCardElem, order: 3});
+  }
+  
+  // Hand card with position
+  if (handCardElem && handPos === 'before') {
+    cardElements.unshift({element: handCardElem, order: 0}); // Add to beginning
+  } else if (handCardElem && handPos === 'after') {
+    cardElements.push({element: handCardElem, order: 4}); // Add to end
+  }
+  
+  // Sort by order and add to preview
+  cardElements.sort((a, b) => a.order - b.order)
+    .forEach(item => previewDiv.appendChild(item.element));
+  
+  // Add help text
+  const needsPlacement = (helperCard && !helperPos) || (handCard && !handPos);
+  if (needsPlacement) {
+    const helpText = document.createElement('p');
+    helpText.textContent = 'Pilih posisi untuk kartu yang belum ditempatkan';
+    helpText.className = 'preview-help-text';
+    previewDiv.appendChild(helpText);
   }
 };

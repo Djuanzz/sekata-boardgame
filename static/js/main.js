@@ -140,6 +140,7 @@ const handleStartGame = async () => {
   }
 };
 
+// Replace the existing handleSubmitFragment function
 const handleSubmitFragment = async (position) => {
   state.clearMessage();
   const currentGameId = state.getCurrentGameId();
@@ -161,10 +162,13 @@ const handleSubmitFragment = async (position) => {
       position: position
     };
     
-    // Add helper card data if selected
-    if (selectedHelperCard) {
+    // Add helper card data if selected (with its own position)
+    if (selectedHelperCard && selectedHelperPosition) {
       requestData.helper_card = selectedHelperCard;
       requestData.helper_position = selectedHelperPosition;
+    } else if (selectedHelperCard) {
+      state.setMessage("Silakan pilih posisi untuk kartu helper terlebih dahulu", "error");
+      return;
     }
     
     const response = await api.submitFragment(
@@ -172,12 +176,15 @@ const handleSubmitFragment = async (position) => {
       requestData
     );
     
+    // Update the handleSubmitFragment function
     if (response.success) {
       state.setMessage(`${response.message} ${response.score_earned ? `+${response.score_earned} poin!` : ""}`, "success");
       state.setSelectedHandCard(null);
       selectedHelperCard = null;
       selectedHelperPosition = null;
-      ui.resetCardSelectionUI();
+      document.getElementById('remove-helper-btn').style.display = 'none';
+      document.getElementById('helper-action-buttons').style.display = 'none';
+      ui.resetCardSelectionUI(state.getGameData()?.card_on_table);
     } else {
       state.setMessage(response.message, "error");
     }
@@ -199,10 +206,11 @@ const handleCheckTurn = async () => {
 
   try {
     const data = await api.checkTurn(currentGameId, currentPlayerId);
+    // Update the handleCheckTurn function
     if (data.success) {
       state.setMessage(data.message, "info");
       state.setSelectedHandCard(null); // Reset selected card in state
-      ui.resetCardSelectionUI(); // Reset UI
+      ui.resetCardSelectionUI(state.getGameData()?.card_on_table); // Pass the table card
     } else {
       state.setMessage(`Gagal melewati giliran: ${data.message}`, "error");
     }
@@ -228,6 +236,7 @@ const handleCardClick = (cardValue) => {
   state.setSelectedHandCard(cardValue);
 };
 
+// Replace the existing handleHelperCardClick function
 const handleHelperCardClick = async (helperCard) => {
   const currentGameId = state.getCurrentGameId();
   const currentPlayerId = state.getCurrentPlayerId();
@@ -243,14 +252,16 @@ const handleHelperCardClick = async (helperCard) => {
   
   // Toggle selection of helper card
   if (selectedHelperCard === helperCard) {
+    // Deselect the helper card
     selectedHelperCard = null;
+    selectedHelperPosition = null;
     document.querySelectorAll('.helper-card-btn').forEach(btn => {
       btn.classList.remove('selected-helper');
     });
-    
-    // Reset helper position buttons
-    document.getElementById('helper-position-buttons').style.display = 'none';
+    document.getElementById('remove-helper-btn').style.display = 'none';
+    document.getElementById('helper-action-buttons').style.display = 'none';
   } else {
+    // Select the helper card
     selectedHelperCard = helperCard;
     
     // Update UI to show it's selected
@@ -261,25 +272,79 @@ const handleHelperCardClick = async (helperCard) => {
       }
     });
     
-    // Show helper position buttons
-    document.getElementById('helper-position-buttons').style.display = 'block';
+    // Show the helper controls with a more forceful style
+    document.getElementById('remove-helper-btn').style.display = 'inline-block';
+    document.getElementById('helper-action-buttons').style.display = 'block';
+    
+    // For debugging, add:
+    console.log('Helper controls should be visible now');
   }
+  
+  // Update the word preview
+  updateWordPreview();
 };
 
-const handleHelperPositionSelect = (position) => {
-  selectedHelperPosition = position;
+// Update the updateWordPreview function
+
+const updateWordPreview = () => {
+  console.log(`Updating word preview with helper position: ${selectedHelperPosition}`);
+  ui.updateWordPreview(
+    state.getGameData()?.card_on_table,
+    selectedHelperCard,
+    selectedHelperPosition,
+    state.getSelectedHandCard(),
+    null
+  );
+};
+
+// Add this function to handle removing helper card
+const handleRemoveHelperCard = () => {
+  selectedHelperCard = null;
+  document.querySelectorAll('.helper-card-btn').forEach(btn => {
+    btn.classList.remove('selected-helper');
+  });
+  document.getElementById('remove-helper-btn').style.display = 'none';
   
-  // Update UI to show selected position
-  document.querySelectorAll('.helper-position-btn').forEach(btn => {
-    btn.classList.remove('selected');
-    if (btn.dataset.position === position) {
-      btn.classList.add('selected');
-    }
+  // Update word preview
+  updateWordPreview();
+};
+
+// Replace or update the handleHelperPlacement function
+
+const handleHelperPlacement = (position) => {
+  console.log(`Helper placement called with position: ${position}, card: ${selectedHelperCard}`);
+  
+  if (!selectedHelperCard) {
+    console.log('No helper card selected');
+    return;
+  }
+  
+  // Set the helper position
+  selectedHelperPosition = position;
+  console.log(`Setting selectedHelperPosition to: ${selectedHelperPosition}`);
+  
+  // Update UI to show the selected position
+  document.querySelectorAll('#helper-action-buttons button').forEach(btn => {
+    btn.classList.remove('active-position');
   });
   
-  // Inform user to select a card from hand
-  if (selectedHelperCard && selectedHelperPosition) {
-    state.setMessage("Sekarang pilih kartu dari tangan Anda dan posisi untuk menyambungnya", "info");
+  const activeBtn = position === 'before' ? 
+    document.getElementById('helper-before-btn') : 
+    document.getElementById('helper-after-btn');
+  
+  if (activeBtn) {
+    activeBtn.classList.add('active-position');
+    console.log('Added active-position class to button');
+  } else {
+    console.log('Button not found');
+  }
+  
+  // Update preview with the selected position
+  updateWordPreview();
+  
+  // Inform the user to select their playing card if not already selected
+  if (!state.getSelectedHandCard()) {
+    state.setMessage("Sekarang pilih kartu dari tangan Anda", "info");
   }
 };
 
@@ -337,7 +402,28 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   submitAfterBtn.addEventListener("click", () => handleSubmitFragment("after"));
   checkTurnBtn.addEventListener("click", handleCheckTurn);
-  useHelperBtn.addEventListener("click", handleUseHelper);
+
+  // Helper position buttons
+  const helperBeforeBtn = document.getElementById('helper-before-btn');
+  const helperAfterBtn = document.getElementById('helper-after-btn');
+  
+  if (helperBeforeBtn) {
+    helperBeforeBtn.addEventListener('click', function() {
+      console.log('Helper before button clicked'); // Debugging
+      handleHelperPlacement('before');
+    });
+  } else {
+    console.error('helper-before-btn element not found');
+  }
+  
+  if (helperAfterBtn) {
+    helperAfterBtn.addEventListener('click', function() {
+      console.log('Helper after button clicked'); // Debugging
+      handleHelperPlacement('after');
+    });
+  } else {
+    console.error('helper-after-btn element not found');
+  }
 
   // Set up helper position buttons
   document.querySelectorAll('.helper-position-btn').forEach(btn => {
@@ -391,4 +477,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initial UI state
   ui.updateGameUI(state.getGameData()); // Sembunyikan area game sampai pemain membuat/bergabung
   ui.updateActionButtons(false, false, false); // Nonaktifkan tombol aksi awal
+  
+  // Add event listener for the remove helper button
+  const removeHelperBtn = document.getElementById('remove-helper-btn');
+  if (removeHelperBtn) {
+    removeHelperBtn.addEventListener('click', handleRemoveHelperCard);
+  }
 });
