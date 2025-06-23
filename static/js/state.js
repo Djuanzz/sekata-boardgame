@@ -5,6 +5,7 @@ let _currentGameId = null;
 let _gameData = null; // Menampung seluruh data game dari API
 let _message = { text: "", type: "" };
 let _selectedHandCard = null;
+let _helperCard = [];
 
 // Objek untuk menyimpan fungsi-fungsi listener
 const listeners = {
@@ -13,6 +14,7 @@ const listeners = {
   gameData: [],
   message: [],
   selectedHandCard: [],
+  helperCard: [],
 };
 
 // Fungsi untuk memberi tahu listener tentang perubahan state
@@ -36,6 +38,12 @@ export const setCurrentGameId = (id) => {
 export const getGameData = () => _gameData;
 export const setGameData = (data) => {
   _gameData = data;
+  // Sinkronkan helper card jika ada
+  if (data && data.helper_cards) {
+    setHelperCard(data.helper_cards);
+  } else {
+    setHelperCard([]);
+  }
   notifyListeners("gameData", _gameData);
 };
 
@@ -53,6 +61,12 @@ export const getSelectedHandCard = () => _selectedHandCard;
 export const setSelectedHandCard = (card) => {
   _selectedHandCard = card;
   notifyListeners("selectedHandCard", _selectedHandCard);
+};
+
+export const getHelperCard = () => _helperCard;
+export const setHelperCard = (cards) => {
+  _helperCard = Array.isArray(cards) ? cards : [];
+  notifyListeners("helperCard", _helperCard);
 };
 
 // Fungsi untuk mendaftar listener
@@ -76,6 +90,9 @@ export const subscribe = (stateName, callback) => {
       case "selectedHandCard":
         callback(_selectedHandCard);
         break;
+      case "helperCard":
+        callback(_helperCard);
+        break;
     }
   } else {
     console.warn(`State '${stateName}' tidak memiliki listener.`);
@@ -96,10 +113,12 @@ export const resetAllState = () => {
   _gameData = null;
   _message = { text: "", type: "" };
   _selectedHandCard = null;
+  _helperCard = [];
   // Notify all listeners of reset
   notifyListeners("currentPlayerId", _currentPlayerId);
   notifyListeners("currentGameId", _currentGameId);
   notifyListeners("gameData", _gameData);
   notifyListeners("message", _message);
   notifyListeners("selectedHandCard", _selectedHandCard);
+  notifyListeners("helperCard", _helperCard);
 };

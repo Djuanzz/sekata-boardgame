@@ -20,6 +20,8 @@ const checkTurnBtn = document.getElementById("check-turn-btn");
 const scoreList = document.getElementById("score-list");
 const messagesDiv = document.getElementById("messages");
 const connectionArea = document.getElementById("connection-area");
+const helperCardValueSpan = document.getElementById("helper-card-value");
+const useHelperBtn = document.getElementById("use-helper-btn");
 
 // --- Helper UI Functions ---
 export const showMessage = (msg, type = "info") => {
@@ -80,6 +82,25 @@ export const renderPlayerScores = (playersData, currentPlayerId) => {
   }
 };
 
+// Render kartu helper (banyak)
+export const renderHelperCard = (helperCards, onHelperClick) => {
+  helperCardValueSpan.innerHTML = "";
+  useHelperBtn.style.display = "none";
+  useHelperBtn.disabled = true;
+
+  if (Array.isArray(helperCards) && helperCards.length > 0) {
+    helperCards.forEach((card) => {
+      const cardBtn = document.createElement("button");
+      cardBtn.textContent = card;
+      cardBtn.className = "helper-card-btn";
+      cardBtn.addEventListener("click", () => onHelperClick(card));
+      helperCardValueSpan.appendChild(cardBtn);
+    });
+  } else {
+    helperCardValueSpan.textContent = "-";
+  }
+};
+
 // Update status tombol aksi
 export const updateActionButtons = (
   isMyTurn,
@@ -104,7 +125,8 @@ export const updateGameUI = (
   gameData,
   currentPlayerId,
   selectedHandCard,
-  onCardClick
+  onCardClick,
+  onHelperClick
 ) => {
   if (!gameData) {
     gameArea.style.display = "none";
@@ -140,6 +162,7 @@ export const updateGameUI = (
     onCardClick,
     selectedHandCard
   );
+  renderHelperCard(gameData.helper_cards, onHelperClick); // Kirim handler baru
   currentTurnDisplay.textContent = gameData.current_turn;
   renderPlayerScores(gameData.players, currentPlayerId);
 

@@ -233,10 +233,18 @@ class SeKataHTTPHandler(SimpleHTTPRequestHandler):
             player = game.players[player_id]
 
             # --- Validasi Fragment di Tangan Pemain ---
-            if not player.remove_card(submitted_fragment.upper()):
-                self.send_json_response(400, {"success": False, "message": f"Anda tidak memiliki kartu '{submitted_fragment}' di tangan."})
+            is_helper_used = (
+                hasattr(game, "helper_cards")
+                and game.helper_cards
+                and submitted_fragment.upper() in [h.upper() for h in game.helper_cards]
+            )
+            if not is_helper_used and not player.remove_card(submitted_fragment.upper()):
+                self.send_json_response(400, {"success": False, "message": f"Anda tidak memiliki kartu '{submitted_fragment}' di tangan maupun sebagai helper."})
                 return
 
+            # Jika helper digunakan, hapus dari helper_cards
+            if is_helper_used:
+                game.helper_cards.remove(submitted_fragment.upper())
             # --- Validasi Pembentukan Kata ---
             if not game.card_on_table: # Seharusnya selalu ada kartu di meja setelah game dimulai
                  self.send_json_response(500, {"success": False, "message": "Tidak ada kartu di meja untuk disambung."})

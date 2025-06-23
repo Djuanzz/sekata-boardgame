@@ -77,20 +77,19 @@ class Player:
     def __init__(self, player_id):
         self.player_id = player_id
         self.hand = [] # Kartu potongan kata di tangan pemain
-        self.score = 0 # Skor mungkin tidak terlalu relevan jika menang berdasarkan kartu habis
-        self.last_action_check = False # Untuk melacak aksi 'Check' berturut-turut
+        self.score = 0
+        self.last_action_check = False
+        self.helper_card = None  # Kartu helper, default None
 
     def add_cards(self, cards):
-        """Menambahkan kartu ke tangan pemain."""
         self.hand.extend(cards)
 
     def remove_card(self, card_to_remove):
-        """Menghapus kartu tertentu dari tangan pemain."""
         try:
             self.hand.remove(card_to_remove)
             return True
         except ValueError:
-            return False # Kartu tidak ada di tangan
+            return False
 
 # --- Kelas Game ---
 class Game:
@@ -103,6 +102,7 @@ class Game:
         self.discard_pile = [] # Tumpukan buangan
 
         self.card_on_table = None # Hanya satu kartu terbuka di meja
+        self.helper_cards = []   # List kartu helper global (3 kartu)
         self.current_turn_index = 0 # Indeks pemain yang gilirannya saat ini
 
         self.game_started = False
@@ -138,6 +138,8 @@ class Game:
 
         # Letakkan kartu pertama di meja
         self.card_on_table = self.main_deck.draw_card()
+        # Draw 3 helper cards dari deck (jika ada)
+        self.helper_cards = self.main_deck.get_cards(3)
         if not self.card_on_table: # Jika deck kosong di awal (sangat jarang)
             return False, "Deck kata kosong, tidak bisa memulai game."
         
@@ -199,22 +201,41 @@ class Game:
                 print(f"Pemenang: {player_id}! Game berakhir.")
                 return True
         return False
+    
+    def give_helper_card(self, player_id, position, dictionary_set):
+        """
+        Memberikan kartu helper ke pemain jika memungkinkan.
+        position: 'before' atau 'after'
+        """
+        if player_id not in self.players or not self.card_on_table:
+            return None
+
+        for frag in POTONGAN_KATA:
+            if position == 'before':
+                candidate = frag.upper() + self.card_on_table.upper()
+            else:
+                candidate = self.card_on_table.upper() + frag.upper()
+            if is_word_in_dictionary(candidate, dictionary_set):
+                self.players[player_id].helper_card = frag.upper()
+                return frag.upper()
+        return None
 
 
     def get_game_state_for_player(self, viewer_player_id):
-        """Mengembalikan representasi status game yang aman untuk dikirim ke client."""
         players_data = {}
         for pid, player_obj in self.players.items():
             players_data[pid] = {
-                "score": player_obj.score, # Mungkin tidak digunakan untuk game ini
+                "score": player_obj.score,
                 "hand_size": len(player_obj.hand),
-                "hand": player_obj.hand if pid == viewer_player_id else [] # Hanya kirim tangan pemain yang sedang melihat
+                "hand": player_obj.hand if pid == viewer_player_id else []
+                # "helper_card": player_obj.helper_card if pid == viewer_player_id else None # Hapus jika tidak pakai per-player
             }
         
         return {
             "game_id": self.game_id,
             "host_id": self.host_id,
             "card_on_table": self.card_on_table,
+            "helper_cards": self.helper_cards,  # List helper cards global
             "current_turn": self.get_current_player_id(),
             "players": players_data,
             "main_deck_count": len(self.main_deck.cards),

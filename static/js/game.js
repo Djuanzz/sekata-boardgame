@@ -27,6 +27,8 @@ const checkTurnBtn = document.getElementById("check-turn-btn");
 
 const scoreList = document.getElementById("score-list");
 const messagesDiv = document.getElementById("messages");
+const helperCardValueSpan = document.getElementById("helper-card-value");
+const useHelperBtn = document.getElementById("use-helper-btn");
 
 let currentPlayerId = null;
 let currentGameId = null;
@@ -99,6 +101,28 @@ function renderPlayerScores(playersData, currentPlayerId) {
   }
 }
 
+// Fungsi untuk render kartu helper (banyak)
+function renderHelperCards(helperCards) {
+  helperCardValueSpan.innerHTML = "";
+  useHelperBtn.style.display = "none";
+  useHelperBtn.disabled = true;
+
+  if (Array.isArray(helperCards) && helperCards.length > 0) {
+    helperCards.forEach((card) => {
+      const cardBtn = document.createElement("button");
+      cardBtn.textContent = card;
+      cardBtn.className = "helper-card-btn";
+      cardBtn.addEventListener("click", () => {
+        // Submit helper card, misal selalu ke depan
+        selectedHandCard = card; // Tambahkan ke kartu yang dipilih
+      });
+      helperCardValueSpan.appendChild(cardBtn);
+    });
+  } else {
+    helperCardValueSpan.textContent = "-";
+  }
+}
+
 // Update status tombol aksi
 function updateActionButtons() {
   const isMyTurn = currentTurnDisplay.textContent === currentPlayerId;
@@ -132,6 +156,7 @@ async function pollGameStatus() {
 
     if (data.success) {
       const gameData = data.data;
+      console.log("Polling game status:", gameData);
 
       // Tampilkan pemenang jika ada
       if (gameData.winner) {
@@ -152,6 +177,7 @@ async function pollGameStatus() {
       // Update UI utama
       renderCardOnTable(gameData.card_on_table);
       renderPlayerHand(gameData.players[currentPlayerId].hand || []);
+      renderHelperCards(gameData.helper_cards); // Ganti ke fungsi baru
       currentTurnDisplay.textContent = gameData.current_turn;
       renderPlayerScores(gameData.players, currentPlayerId);
 

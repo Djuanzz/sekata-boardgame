@@ -13,6 +13,7 @@ const startGameBtn = document.getElementById("start-game-btn");
 const submitBeforeBtn = document.getElementById("submit-before-btn");
 const submitAfterBtn = document.getElementById("submit-after-btn");
 const checkTurnBtn = document.getElementById("check-turn-btn");
+const useHelperBtn = document.getElementById("use-helper-btn");
 
 let pollInterval = null;
 
@@ -135,11 +136,11 @@ const handleStartGame = async () => {
   }
 };
 
-const handleSubmitFragment = async (position) => {
+const handleSubmitFragment = async (position, overrideCard = null) => {
   state.clearMessage();
   const currentGameId = state.getCurrentGameId();
   const currentPlayerId = state.getCurrentPlayerId();
-  const selectedHandCard = state.getSelectedHandCard();
+  const selectedHandCard = overrideCard || state.getSelectedHandCard();
 
   if (!selectedHandCard) {
     state.setMessage("Pilih kartu dari tangan Anda terlebih dahulu.", "error");
@@ -201,8 +202,24 @@ const handleCheckTurn = async () => {
   }
 };
 
+const handleUseHelper = async () => {
+  const currentGameId = state.getCurrentGameId();
+  const currentPlayerId = state.getCurrentPlayerId();
+  const helperCard = state.getHelperCard();
+  if (!currentGameId || !currentPlayerId || !helperCard) return;
+  // Misal helper hanya bisa digunakan untuk sambung depan
+  await handleSubmitFragment("before", helperCard);
+};
+
 const handleCardClick = (cardValue) => {
   state.setSelectedHandCard(cardValue);
+};
+
+const handleHelperCardClick = async (helperCard) => {
+  const currentGameId = state.getCurrentGameId();
+  const currentPlayerId = state.getCurrentPlayerId();
+  if (!currentGameId || !currentPlayerId || !helperCard) return;
+  await handleSubmitFragment("before", helperCard);
 };
 
 // --- Subscriptions and Initial Setup ---
@@ -216,7 +233,8 @@ document.addEventListener("DOMContentLoaded", () => {
       gameData,
       currentPlayerId,
       selectedHandCard,
-      handleCardClick
+      handleCardClick,
+      handleHelperCardClick // handler baru untuk helper card
     );
   });
   state.subscribe("currentPlayerId", (id) => {
@@ -244,6 +262,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.updateActionButtons(false, false, false); // Disable all if no game data
     }
   });
+  // Subscribe helperCard ke UI
+  state.subscribe("helperCard", (helperCard) => {
+    ui.renderHelperCard(helperCard);
+  });
 
   // Add Event Listeners
   createGameBtn.addEventListener("click", handleCreateGame);
@@ -254,6 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   submitAfterBtn.addEventListener("click", () => handleSubmitFragment("after"));
   checkTurnBtn.addEventListener("click", handleCheckTurn);
+  useHelperBtn.addEventListener("click", handleUseHelper);
 
   // Initial UI state
   ui.updateGameUI(state.getGameData()); // Sembunyikan area game sampai pemain membuat/bergabung
