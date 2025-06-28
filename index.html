@@ -9,6 +9,7 @@
   <body>
     <div id="game-container">
       <h1>Sekata</h1>
+      <!-- Area Koneksi (Tidak Berubah) -->
       <div id="connection-area">
         <input type="text" id="player-name-input" placeholder="Nama Pemain" />
         <button id="create-game-btn">Buat Game Baru</button>
@@ -16,71 +17,77 @@
         <button id="join-game-btn">Gabung Game</button>
       </div>
 
-      <div id="game-area" style="display: none">
-        <p>ID Game Anda: <strong id="game-id-display"></strong></p>
-        <p>Host: <strong id="host-id-display"></strong></p>
-        <p>
-          Pemain Online: <span id="current-players-count">0</span>
-          <br />
-          Minimal Pemain: <span id="min-players-to-start">2</span>
-        </p>
-        <button id="start-game-btn" style="display: none">Mulai Game</button>
-
-        <p>Giliran: <strong id="current-turn-display"></strong></p>
-        <p
-          id="winner-display"
-          style="display: none; color: green; font-weight: bold"
-        >
-          Pemenang: <span id="winner-name"></span>!
-        </p>
-
-        <div id="table-area">
-          <h3>Kartu di Meja:</h3>
-          <div id="card-on-table"></div>
+      <!-- Area Permainan (Struktur Baru) -->
+      <div id="game-area" class="hidden">
+        <!-- Info Game dan Pemain (Akan selalu terlihat saat di game/lobi) -->
+        <div class="game-info-bar">
+          <span>ID Game: <strong id="game-id-display"></strong></span>
+          <span class="turn-display">Status: <strong id="current-turn-display"></strong></span>
+          <div id="score-list"></div>
+        </div>
+        
+        <!-- VVVV AREA LOBI BARU VVVV -->
+        <div id="lobby-area" class="section-box hidden">
+            <h3>Lobi Permainan</h3>
+            <p>Tunggu pemain lain bergabung. Host dapat memulai permainan jika jumlah pemain sudah mencukupi.</p>
+            <h4>Pemain yang Bergabung:</h4>
+            <ul id="lobby-player-list"></ul>
+            <button id="start-game-btn" class="btn-primary hidden">Mulai Game</button>
         </div>
 
-        <div id="player-hand-container">
-          <h3>Tangan Anda:</h3>
-          <div id="player-hand"></div>
-          <div id="helper-card-area" style="margin-top:10px;">
-            <strong>Kartu Helper:</strong>
-            <span id="helper-card-value">-</span>
-            <button id="remove-helper-btn" style="display:none; margin-left:10px;">Hapus Helper</button>
-            <div id="helper-action-buttons" style="display:none; margin-top:5px;">
-              <button id="helper-before-btn">Sambung Depan</button>
-              <button id="helper-after-btn">Sambung Belakang</button>
+        <!-- VVVV AREA PAPAN PERMAINAN BARU VVVV -->
+        <div id="board-area" class="hidden">
+            <!-- Area Preview Kata -->
+            <div id="word-preview-area" class="section-box">
+              <h3>Kata yang Dibangun</h3>
+              <div id="word-preview-display" class="card-area"></div>
             </div>
-          </div>
-        </div>
-
-        <div id="word-preview-container">
-          <h3>Preview Kata:</h3>
-          <div id="word-formation-preview">
-            <!-- Preview will be rendered here -->
-          </div>
-        </div>
-
-        <div id="action-area">
-          <h4>Aksi:</h4>
-          <div class="input-group">
-            <button id="submit-before-btn" disabled>Sambung Depan</button>
-            <div id="selected-card-preview" class="card-preview">
-              Pilih Kartu
+            
+            <!-- Area Aksi Utama -->
+            <div id="main-action-area" class="section-box">
+                <h3>Area Aksi</h3>
+                <div id="staged-card-display">Pilih Kartu</div>
+                <div class="button-group">
+                    <button id="action-before-btn" disabled>Sambung Depan</button>
+                    <button id="action-after-btn" disabled>Sambung Belakang</button>
+                </div>
             </div>
-            <button id="submit-after-btn" disabled>Sambung Belakang</button>
-          </div>
-          <button id="check-turn-btn" disabled>Check (Lewati Giliran)</button>
+
+            <!-- Area Kartu Helper -->
+            <div id="helper-cards-area" class="section-box">
+              <h3>Kartu Helper</h3>
+              <div id="helper-cards-container" class="card-area"></div>
+            </div>
+
+            <!-- Area Kartu Tangan -->
+            <div id="player-hand-area" class="section-box">
+              <h3>Tangan Anda</h3>
+              <div id="player-hand-container" class="card-area"></div>
+            </div>
+
+            <!-- Area Aksi Final Giliran -->
+            <div id="final-turn-actions" class="section-box">
+                <h3>Aksi Giliran</h3>
+                <div class="button-group">
+                    <button id="submit-word-btn" class="btn-primary" disabled>Kirim Kata</button>
+                    <button id="reset-turn-btn" class="btn-warning" disabled>Reset Giliran</button>
+                    <button id="check-turn-btn" class="btn-secondary" disabled>Check</button>
+                </div>
+            </div>
         </div>
 
-        <div id="scores-area">
-          <h3>Jumlah Kartu Pemain:</h3>
-          <ul id="score-list"></ul>
-        </div>
+        <!-- Notifikasi & Pemenang -->
         <div id="messages"></div>
+        <div id="winner-display" class="hidden">Pemenang: <strong id="winner-name"></strong></div>
       </div>
     </div>
+    
+    <div id="popup-overlay" class="hidden">
+      <div id="popup-box">
+        <p id="popup-message"></p>
+      </div>
+    </div>
+
     <script type="module" src="/static/js/main.js"></script>
-
-
-</html>  </body>  </body>
+  </body>
 </html>
