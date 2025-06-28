@@ -1,4 +1,4 @@
-/* sekata_game/static/css/style.css */
+/* static/css/style.css (Diperbarui) */
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
@@ -16,391 +16,145 @@ body {
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   width: 90%;
-  max-width: 800px; /* Batasi lebar */
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
-h1,
-h3,
-h4 {
-  color: #007bff;
-  text-align: center;
-  margin-bottom: 15px;
-}
-
-/* Connection Area */
-#connection-area {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-bottom: 25px;
-  padding-bottom: 25px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-#connection-area input[type="text"] {
-  padding: 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  flex-grow: 1;
-  max-width: 220px;
-  font-size: 1em;
-}
-
-#connection-area button {
-  padding: 12px 20px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1em;
-  transition: background-color 0.2s ease;
-}
-
-#connection-area button:hover {
-  background-color: #218838;
-}
-
-/* Game Area */
-#game-area {
+  max-width: 900px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  text-align: center;
 }
 
-#start-game-btn {
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1em;
-  margin-top: 10px;
-}
+h1, h3 { text-align: center; color: #007bff; }
 
-#start-game-btn:hover:not(:disabled) {
-  background-color: #0056b3;
+/* --- Area Koneksi (Tidak Berubah) --- */
+#connection-area {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+  margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid #e9ecef;
 }
-
-#start-game-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+#connection-area input[type="text"] {
+  padding: 12px; border: 1px solid #ced4da; border-radius: 6px; flex-grow: 1; max-width: 220px; font-size: 1em;
 }
+#connection-area button {
+  padding: 12px 20px; background-color: #28a745; color: white; border: none;
+  border-radius: 6px; cursor: pointer; font-size: 1em; transition: background-color 0.2s ease;
+}
+#connection-area button:hover { background-color: #218838; }
 
-#winner-display {
-  text-align: center;
-  font-size: 1.5em;
+/* --- Struktur Game Area Baru --- */
+#game-area { display: flex; flex-direction: column; gap: 15px; }
+
+.game-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 10px;
-  background-color: #d4edda;
-  border-radius: 5px;
-  border: 1px solid #28a745;
+  background: #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9em;
 }
+.turn-display { font-size: 1.2em; font-weight: bold; }
+#score-list { list-style: none; padding: 0; margin: 0; text-align: right; }
 
-/* Card Styling */
+.section-box {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 15px;
+}
+.section-box h3 { margin-top: 0; }
+
 .card-area {
   display: flex;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 15px;
-  border-radius: 8px;
   min-height: 80px;
 }
 
-#table-area .card-area {
-  background-color: #f0f8ff;
-  border: 2px solid #007bff;
-}
-
-#player-hand {
-  background-color: #eaf5ff;
-  border: 1px solid #a0c4ff;
-  min-height: 100px;
-}
-
-.card {
-  min-width: 80px; /* Lebar minimum kartu */
-  padding: 10px 15px;
-  height: 60px; /* Tinggi kartu */
-  background-color: #ffc107;
-  border: 3px solid #e0a800;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* --- Area Preview & Aksi --- */
+#word-preview-display {
+  font-size: 2em;
   font-weight: bold;
+  letter-spacing: 2px;
+  background-color: #e9ecef;
+}
+
+#staged-card-display {
+  padding: 15px;
+  border: 2px dashed #6c757d;
+  border-radius: 8px;
+  margin-bottom: 10px;
   font-size: 1.2em;
-  color: #343a40;
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease,
-    background-color 0.2s ease;
+  font-weight: bold;
+  color: #6c757d;
+}
+#staged-card-display.active {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+/* --- Kartu --- */
+.card {
+  min-width: 80px; padding: 10px 15px; height: 60px;
+  border-radius: 8px; display: flex; justify-content: center;
+  align-items: center; font-weight: bold; font-size: 1.2em;
+  color: #343a40; cursor: pointer; user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
 }
+.card:not(.disabled):hover { transform: translateY(-3px); box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.2); }
+.card[data-type="hand"] { background-color: #ffc107; border: 3px solid #e0a800; }
+.card[data-type="helper"] { background-color: #28a745; border: 3px solid #1e7e34; color: white; }
+.card.selected { transform: translateY(-5px); box-shadow: 0 0 15px #007bff; border-color: #007bff; }
+.card.disabled { opacity: 0.5; cursor: not-allowed; background-color: #e9ecef; }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.2);
+/* --- Tombol --- */
+.button-group { display: flex; justify-content: center; gap: 15px; }
+button {
+  padding: 10px 20px; color: white; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 1em; transition: background-color 0.2s ease;
 }
+button:disabled { background-color: #cccccc; cursor: not-allowed; }
 
-.card.selected {
-  border: 3px solid #dc3545; /* Warna merah untuk kartu yang dipilih */
-  background-color: #ffbebb; /* Warna latar belakang untuk kartu yang dipilih */
-  box-shadow: 0 0 10px #dc3545;
+.btn-primary { background-color: #007bff; }
+.btn-primary:hover:not(:disabled) { background-color: #0056b3; }
+.btn-secondary { background-color: #6c757d; }
+.btn-secondary:hover:not(:disabled) { background-color: #5a6268; }
+.btn-warning { background-color: #ffc107; color: #212529; }
+.btn-warning:hover:not(:disabled) { background-color: #e0a800; }
+#main-action-area button { background-color: #17a2b8; }
+#main-action-area button:hover:not(:disabled) { background-color: #138496; }
+
+/* --- Popup & Notifikasi --- */
+#messages {
+  margin-top: 15px; padding: 12px; border-radius: 6px;
+  text-align: center; font-weight: bold; font-size: 1.1em;
 }
+.hidden { display: none !important; }
 
-#selected-card-preview {
-  background-color: #f0f0f0;
-  border: 1px dashed #666;
-  min-width: 100px;
-  padding: 10px 15px;
-  border-radius: 8px;
-  font-style: italic;
-  color: #666;
-  text-align: center;
-  height: 60px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+#popup-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); display: flex;
+  justify-content: center; align-items: center; z-index: 1000;
 }
-
-/* Action Area */
-#action-area {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
-  border-top: 1px solid #e9ecef;
-  padding-top: 20px;
+#popup-box {
+  background: white; padding: 40px; border-radius: 15px;
+  text-align: center; box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
 }
+#popup-message { margin: 0; font-size: 1.5em; font-weight: bold; }
+#popup-message.success { color: #155724; }
+#popup-message.error { color: #721c24; }
 
-.input-group {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.input-group button,
-#check-turn-btn {
-  padding: 12px 20px;
-  background-color: #17a2b8;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1em;
-  transition: background-color 0.2s ease;
-}
-
-.input-group button:hover:not(:disabled),
-#check-turn-btn:hover:not(:disabled) {
-  background-color: #138496;
-}
-
-.input-group button:disabled,
-#check-turn-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-/* Scores */
-#scores-area {
-  margin-top: 25px;
-  border-top: 1px solid #e9ecef;
-  padding-top: 20px;
-}
-
-#score-list {
+#lobby-player-list {
   list-style: none;
   padding: 0;
+  margin: 20px 0;
   text-align: center;
 }
 
-#score-list li {
-  padding: 8px 0;
-  border-bottom: 1px dashed #dee2e6;
-  font-size: 1.05em;
-  color: #495057;
-}
-
-#score-list li:last-child {
-  border-bottom: none;
-}
-
-/* Messages */
-.messages {
-  margin-top: 15px;
-  padding: 12px;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: bold;
-  font-size: 1.1em;
-}
-
-.messages.info {
-  background-color: #e7f3fe;
-  color: #0056b3;
-}
-
-.messages.success {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.messages.error {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.helper-card-btn {
-  background-color: #28a745;
-  color: white;
-  border: 2px solid #1e7e34;
-  padding: 5px 10px;
-  margin: 0 5px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.helper-card-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.helper-card-btn.selected-helper {
-  background-color: #007bff;
-  border-color: #0062cc;
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.helper-position-btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  margin: 0 3px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.helper-position-btn.selected {
-  background-color: #007bff;
-}
-
-#word-formation-preview {
+#lobby-player-list li {
+  padding: 8px;
+  font-size: 1.2em;
   background-color: #f8f9fa;
-  border: 1px dashed #dee2e6;
-  min-height: 80px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
-  margin: 15px 0;
-}
-
-.preview-card {
-  padding: 10px;
-  margin: 0 5px;
-  font-weight: bold;
-  border-radius: 5px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-}
-
-.table-preview {
-  background-color: #ffc107;
-  border: 2px solid #e0a800;
-}
-
-.helper-preview {
-  background-color: #28a745;
-  border: 2px solid #1e7e34;
-  color: white;
-}
-
-.hand-preview {
-  background-color: #17a2b8;
-  border: 2px solid #138496;
-  color: white;
-}
-
-#remove-helper-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  padding: 3px 8px;
-  cursor: pointer;
-  font-size: 0.8em;
-}
-
-#remove-helper-btn:hover {
-  background-color: #c82333;
-}
-
-.preview-help-text {
-  width: 100%;
-  margin-top: 10px;
-  font-size: 0.9em;
-  color: #6c757d;
-  text-align: center;
-}
-
-#helper-action-buttons {
-  margin-top: 5px;
-}
-
-#helper-action-buttons button {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  margin: 0 3px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-#helper-action-buttons button:hover {
-  background-color: #5a6268;
-}
-
-#helper-action-buttons button.active-position {
-  background-color: #007bff;
-  color: white;
-  font-weight: bold;
-  transform: translateY(-2px);
-  box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
-  border: 2px solid #0062cc;
-}
-
-@media (max-width: 600px) {
-  #game-container {
-    padding: 15px;
-  }
-  .card {
-    min-width: 60px;
-    height: 50px;
-    font-size: 1em;
-  }
-  .input-group {
-    flex-direction: column;
-  }
-  .input-group button {
-    width: 100%;
-  }
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 4px;
+  margin-bottom: 5px;
 }

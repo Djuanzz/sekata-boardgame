@@ -1,309 +1,159 @@
-// sekata_game/static/js/ui.js
-import * as state from "./state.js";
+// static/js/ui.js (Diperbaiki dengan Logika Lobi)
+import * as state from './state.js';
 
-const gameArea = document.getElementById("game-area");
-const gameIdDisplay = document.getElementById("game-id-display");
-const hostIdDisplay = document.getElementById("host-id-display");
-const currentPlayersCountSpan = document.getElementById(
-  "current-players-count"
-);
-const minPlayersToStartSpan = document.getElementById("min-players-to-start");
-const startGameBtn = document.getElementById("start-game-btn");
-const currentTurnDisplay = document.getElementById("current-turn-display");
-const winnerDisplay = document.getElementById("winner-display");
-const winnerNameSpan = document.getElementById("winner-name");
-const cardOnTableDiv = document.getElementById("card-on-table");
-const playerHandDiv = document.getElementById("player-hand");
-const submitBeforeBtn = document.getElementById("submit-before-btn");
-const submitAfterBtn = document.getElementById("submit-after-btn");
-const selectedCardPreviewDiv = document.getElementById("selected-card-preview");
-const checkTurnBtn = document.getElementById("check-turn-btn");
-const scoreList = document.getElementById("score-list");
-const messagesDiv = document.getElementById("messages");
-const connectionArea = document.getElementById("connection-area");
-const helperCardValueSpan = document.getElementById("helper-card-value");
-const useHelperBtn = document.getElementById("use-helper-btn");
+// Cache elemen DOM
+const getElem = (id) => document.getElementById(id);
+const gameArea = getElem('game-area');
+const connectionArea = getElem('connection-area');
+const gameIdDisplay = getElem('game-id-display');
+const currentTurnDisplay = getElem('current-turn-display');
+const scoreList = getElem('score-list');
+const lobbyArea = getElem('lobby-area');
+const boardArea = getElem('board-area');
+const lobbyPlayerList = getElem('lobby-player-list');
+const startGameBtn = getElem('start-game-btn');
+const wordPreviewDisplay = getElem('word-preview-display');
+const stagedCardDisplay = getElem('staged-card-display');
+const actionBeforeBtn = getElem('action-before-btn');
+const actionAfterBtn = getElem('action-after-btn');
+const helperCardsContainer = getElem('helper-cards-container');
+const playerHandContainer = getElem('player-hand-container');
+const submitWordBtn = getElem('submit-word-btn');
+const resetTurnBtn = getElem('reset-turn-btn');
+const checkTurnBtn = getElem('check-turn-btn');
+const winnerDisplay = getElem('winner-display');
+const winnerName = getElem('winner-name');
+const popupOverlay = getElem('popup-overlay');
+const popupMessage = getElem('popup-message');
 
-// --- Helper UI Functions ---
-export const showMessage = (msg, type = "info") => {
-  messagesDiv.textContent = msg;
-  messagesDiv.className = `messages ${type}`;
-};
+function createCardElement(text, type, onClick) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.type = type;
+  card.dataset.value = text;
+  card.textContent = text;
+  card.addEventListener('click', () => onClick(text, type));
+  return card;
+}
 
-export const clearMessageUI = () => {
-  messagesDiv.textContent = "";
-  messagesDiv.className = "";
-};
+export function showPopup(message, type = 'info', duration = 2000) {
+  popupMessage.textContent = message;
+  popupMessage.className = type;
+  popupOverlay.classList.remove('hidden');
+  setTimeout(() => { popupOverlay.classList.add('hidden'); }, duration);
+}
 
-// Render kartu di tangan
-export const renderPlayerHand = (handCards, onCardClick, selectedHandCard) => {
-  playerHandDiv.innerHTML = "";
-  if (!handCards || handCards.length === 0) {
-    playerHandDiv.innerHTML = "<p>Tidak ada kartu di tangan.</p>";
-    return;
-  }
-  handCards.forEach((cardText) => {
-    const cardDiv = document.createElement("div");
-    cardDiv.classList.add("card");
-    if (cardText === selectedHandCard) {
-      cardDiv.classList.add("selected");
-    }
-    cardDiv.textContent = cardText;
-    cardDiv.dataset.cardValue = cardText;
-    cardDiv.addEventListener("click", () => onCardClick(cardText));
-    playerHandDiv.appendChild(cardDiv);
-  });
-};
+export function updateWordPreview(previewWord) {
+  wordPreviewDisplay.textContent = previewWord;
+}
 
-// Render kartu di meja
-export const renderCardOnTable = (cardValue) => {
-  cardOnTableDiv.innerHTML = "";
-  if (cardValue) {
-    const cardDiv = document.createElement("div");
-    cardDiv.classList.add("card", "table-card");
-    cardDiv.textContent = cardValue;
-    cardOnTableDiv.appendChild(cardDiv);
+export function updateStagedCard(stagedCard) {
+  if (stagedCard) {
+    stagedCardDisplay.textContent = stagedCard;
+    stagedCardDisplay.classList.add('active');
   } else {
-    cardOnTableDiv.innerHTML = "<p>Menunggu kartu awal...</p>";
+    stagedCardDisplay.textContent = 'Pilih Kartu';
+    stagedCardDisplay.classList.remove('active');
   }
-};
+}
 
-// Render jumlah kartu pemain lain
-export const renderPlayerScores = (playersData, currentPlayerId) => {
-  scoreList.innerHTML = "";
-  for (const pId in playersData) {
-    const li = document.createElement("li");
-    const player = playersData[pId];
-    li.textContent = `${pId}: ${player.hand_size} kartu`;
-    if (pId === currentPlayerId) {
-      li.style.fontWeight = "bold";
-      li.style.color = "#007bff";
-    }
-    scoreList.appendChild(li);
-  }
-};
-
-// Render kartu helper (banyak)
-export const renderHelperCard = (helperCards, usedHelperCards, onHelperClick) => {
-  helperCardValueSpan.innerHTML = "";
-  
-  // Render available helper cards
-  if (Array.isArray(helperCards) && helperCards.length > 0) {
-    const availableLabel = document.createElement("div");
-    availableLabel.textContent = "Available Helper Cards:";
-    availableLabel.className = "helper-card-label";
-    helperCardValueSpan.appendChild(availableLabel);
-    
-    helperCards.forEach((card) => {
-      const cardBtn = document.createElement("button");
-      cardBtn.textContent = card;
-      cardBtn.className = "helper-card-btn";
-      cardBtn.addEventListener("click", () => onHelperClick(card));
-      helperCardValueSpan.appendChild(cardBtn);
-    });
-  }
-  
-  // Render used helper cards (displayed but not clickable)
-  if (Array.isArray(usedHelperCards) && usedHelperCards.length > 0) {
-    const usedLabel = document.createElement("div");
-    usedLabel.textContent = "Used Helper Cards:";
-    usedLabel.className = "helper-card-label";
-    usedLabel.style.marginTop = "10px";
-    helperCardValueSpan.appendChild(usedLabel);
-    
-    usedHelperCards.forEach((card) => {
-      const usedCard = document.createElement("span");
-      usedCard.textContent = card;
-      usedCard.className = "helper-card-used";
-      helperCardValueSpan.appendChild(usedCard);
-    });
-  }
-  
-  // If no cards at all
-  if ((!helperCards || helperCards.length === 0) && 
-      (!usedHelperCards || usedHelperCards.length === 0)) {
-    helperCardValueSpan.textContent = "-";
-  }
-};
-
-// Update status tombol aksi
-export const updateActionButtons = (
-  isMyTurn,
-  isCardSelected,
-  isGameStarted
-) => {
-  submitBeforeBtn.disabled = !(isMyTurn && isCardSelected && isGameStarted);
-  submitAfterBtn.disabled = !(isMyTurn && isCardSelected && isGameStarted);
-  checkTurnBtn.disabled = !(isMyTurn && isGameStarted);
-};
-
-// Reset seleksi kartu di UI
-export const resetCardSelectionUI = (tableCard = null) => {
-  selectedCardPreviewDiv.textContent = "Pilih Kartu";
-  document
-    .querySelectorAll("#player-hand .card.selected")
-    .forEach((c) => c.classList.remove("selected"));
-  
-  // Reset helper card selection
-  document.querySelectorAll('.helper-card-btn').forEach(btn => {
-    btn.classList.remove('selected-helper');
-  });
-  
-  document.getElementById('remove-helper-btn').style.display = 'none';
-  document.getElementById('helper-action-buttons').style.display = 'none';
-  document.querySelectorAll('#helper-action-buttons button').forEach(btn => {
-    btn.classList.remove('active-position');
-  });
-  
-  // Reset word preview - use the passed tableCard instead of relying on state
-  updateWordPreview(tableCard, null, null, null, null);
-};
-
-// Update tampilan game berdasarkan gameData
-export const updateGameUI = (
-  gameData,
-  currentPlayerId,
-  selectedHandCard,
-  onCardClick,
-  onHelperClick
-) => {
-  if (!gameData) {
-    gameArea.style.display = "none";
-    connectionArea.style.display = "flex";
+/**
+ * Fungsi utama untuk merender seluruh UI game.
+ */
+export function updateGameUI(gameData, turnState, cardClickHandler) {
+  if (!gameData || !state.getCurrentGameId()) {
+    gameArea.classList.add('hidden');
+    connectionArea.classList.remove('hidden');
     return;
   }
+  
+  gameArea.classList.remove('hidden');
+  connectionArea.classList.add('hidden');
 
-  gameArea.style.display = "block";
-  connectionArea.style.display = "none";
+  const playerId = state.getCurrentPlayerId();
+  const isMyTurn = gameData.current_turn === playerId;
 
+  // Info Atas (Selalu tampil)
   gameIdDisplay.textContent = gameData.game_id;
-  hostIdDisplay.textContent = gameData.host_id;
+  
+  // Periksa apakah game sudah dimulai untuk menampilkan UI yang sesuai
+  if (gameData.game_started) {
+    // TAMPILKAN PAPAN PERMAINAN
+    lobbyArea.classList.add('hidden');
+    boardArea.classList.remove('hidden');
 
-  // Tampilkan pemenang jika ada
-  if (gameData.winner) {
-    winnerDisplay.style.display = "block";
-    winnerNameSpan.textContent = gameData.winner;
-    // Nonaktifkan semua tombol aksi setelah game berakhir
-    submitBeforeBtn.disabled = true;
-    submitAfterBtn.disabled = true;
-    checkTurnBtn.disabled = true;
-    startGameBtn.style.display = "none";
-    showMessage(`Game berakhir! Pemenang: ${gameData.winner}!`, "success");
-    return; // Berhenti update UI jika game sudah selesai
-  } else {
-    winnerDisplay.style.display = "none";
-  }
+    currentTurnDisplay.textContent = `Giliran: ${gameData.current_turn || '-'}`;
 
-  // Update UI utama
-  renderCardOnTable(gameData.card_on_table);
-  renderPlayerHand(
-    gameData.players[currentPlayerId]?.hand || [],
-    onCardClick,
-    selectedHandCard
-  );
-  // Update helper cards with both available and used cards
-  renderHelperCard(
-    gameData.helper_cards,
-    gameData.used_helper_cards,
-    onHelperClick
-  );
-  currentTurnDisplay.textContent = gameData.current_turn;
-  renderPlayerScores(gameData.players, currentPlayerId);
+    // Render kartu helper
+    helperCardsContainer.innerHTML = '';
+    gameData.helper_cards.forEach(cardText => {
+      const card = createCardElement(cardText, 'helper', cardClickHandler);
+      if (turnState.helperCardUsedThisTurn) card.classList.add('disabled');
+      helperCardsContainer.appendChild(card);
+    });
 
-  // Tampilkan info lobi sebelum game dimulai
-  if (!gameData.game_started) {
-    currentPlayersCountSpan.textContent = gameData.current_players_count;
-    minPlayersToStartSpan.textContent = gameData.min_players_to_start;
-    document.querySelector("#game-area > p:nth-child(3)").style.display =
-      "block"; // Show current players count
-    // Hanya host yang bisa melihat dan menekan tombol Start
-    if (
-      gameData.host_id === currentPlayerId &&
-      gameData.current_players_count >= gameData.min_players_to_start
-    ) {
-      startGameBtn.style.display = "block";
-      startGameBtn.disabled = false;
-    } else {
-      startGameBtn.style.display = "none";
+    // Render kartu tangan
+    playerHandContainer.innerHTML = '';
+    const myHand = gameData.players[playerId]?.hand || [];
+    myHand.forEach(cardText => {
+      const card = createCardElement(cardText, 'hand', cardClickHandler);
+      if (turnState.handCardUsedThisTurn) card.classList.add('disabled');
+      playerHandContainer.appendChild(card);
+    });
+    
+    const { stagedCard } = state.getStagedCard();
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    if (stagedCard) {
+      const selectedCardElem = document.querySelector(`.card[data-value="${stagedCard}"]`);
+      if (selectedCardElem) selectedCardElem.classList.add('selected');
     }
+    
+    actionBeforeBtn.disabled = !isMyTurn || !stagedCard;
+    actionAfterBtn.disabled = !isMyTurn || !stagedCard;
+
+    submitWordBtn.disabled = !isMyTurn || !turnState.handCardUsedThisTurn;
+    resetTurnBtn.disabled = !isMyTurn || turnState.turnMoves.length === 0;
+    checkTurnBtn.disabled = !isMyTurn || turnState.turnMoves.length > 0;
+    
   } else {
-    // Sembunyikan info lobi setelah game dimulai
-    startGameBtn.style.display = "none";
-    document.querySelector("#game-area > p:nth-child(3)").style.display =
-      "none"; // Hide current players count
+    // TAMPILKAN LOBI
+    lobbyArea.classList.remove('hidden');
+    boardArea.classList.add('hidden');
+
+    currentTurnDisplay.textContent = 'Menunggu Permainan Dimulai';
+
+    // Render daftar pemain di lobi
+    lobbyPlayerList.innerHTML = '';
+    Object.keys(gameData.players).forEach(pId => {
+      const li = document.createElement('li');
+      li.textContent = `${pId} ${pId === gameData.host_id ? '(Host)' : ''}`;
+      lobbyPlayerList.appendChild(li);
+    });
+    
+    // Tampilkan tombol Start untuk host jika kondisi terpenuhi
+    if (playerId === gameData.host_id && gameData.current_players_count >= gameData.min_players_to_start) {
+        startGameBtn.classList.remove('hidden');
+    } else {
+        startGameBtn.classList.add('hidden');
+    }
   }
 
-  const isMyTurn = gameData.current_turn === currentPlayerId;
-  const isCardSelected = selectedHandCard !== null;
-  const isGameStarted = gameData.game_started;
-  updateActionButtons(isMyTurn, isCardSelected, isGameStarted);
-};
+  // Info Pemain/Skor (Selalu tampil)
+  scoreList.innerHTML = '';
+  Object.entries(gameData.players).forEach(([id, data]) => {
+    const li = document.createElement('li');
+    li.textContent = `${id}: ${data.hand_size} kartu`;
+    if (id === playerId) li.style.fontWeight = 'bold';
+    scoreList.appendChild(li);
+  });
 
-// Replace the existing updateWordPreview function
-export const updateWordPreview = (tableCard, helperCard, helperPos, handCard, handPos) => {
-  const previewDiv = document.getElementById('word-formation-preview');
-  if (!previewDiv) return;
-  
-  previewDiv.innerHTML = '';
-  
-  if (!tableCard) {
-    previewDiv.textContent = 'Menunggu kartu meja...';
-    return;
+  // Handle Pemenang
+  if (gameData.winner) {
+    winnerDisplay.classList.remove('hidden');
+    winnerName.textContent = gameData.winner;
+    boardArea.classList.add('hidden'); // Sembunyikan board saat ada pemenang
+    lobbyArea.classList.add('hidden');
+  } else {
+    winnerDisplay.classList.add('hidden');
   }
-  
-  // Create elements
-  const tableCardElem = document.createElement('span');
-  tableCardElem.textContent = tableCard;
-  tableCardElem.className = 'preview-card table-preview';
-  
-  // Elements for selected cards
-  let helperCardElem = null;
-  if (helperCard) {
-    helperCardElem = document.createElement('span');
-    helperCardElem.textContent = helperCard;
-    helperCardElem.className = 'preview-card helper-preview';
-  }
-  
-  let handCardElem = null;
-  if (handCard) {
-    handCardElem = document.createElement('span');
-    handCardElem.textContent = handCard;
-    handCardElem.className = 'preview-card hand-preview';
-  }
-  
-  // Arrange cards based on positions
-  const cardElements = [];
-  
-  // Helper card with position
-  if (helperCardElem && helperPos === 'before') {
-    cardElements.push({element: helperCardElem, order: 1});
-  }
-  
-  // Table card is always in the middle
-  cardElements.push({element: tableCardElem, order: 2});
-  
-  // Helper card after table
-  if (helperCardElem && helperPos === 'after') {
-    cardElements.push({element: helperCardElem, order: 3});
-  }
-  
-  // Hand card with position
-  if (handCardElem && handPos === 'before') {
-    cardElements.unshift({element: handCardElem, order: 0}); // Add to beginning
-  } else if (handCardElem && handPos === 'after') {
-    cardElements.push({element: handCardElem, order: 4}); // Add to end
-  }
-  
-  // Sort by order and add to preview
-  cardElements.sort((a, b) => a.order - b.order)
-    .forEach(item => previewDiv.appendChild(item.element));
-  
-  // Add help text
-  const needsPlacement = (helperCard && !helperPos) || (handCard && !handPos);
-  if (needsPlacement) {
-    const helpText = document.createElement('p');
-    helpText.textContent = 'Pilih posisi untuk kartu yang belum ditempatkan';
-    helpText.className = 'preview-help-text';
-    previewDiv.appendChild(helpText);
-  }
-};
+}
