@@ -184,10 +184,7 @@ class HttpServer:
 
             game.discard_pile.append(game.card_on_table)
             
-            # =================================================================
-            # VVVVVV         INI ADALAH BARIS KODE YANG DIPERBAIKI       VVVVVV
-            # =================================================================
-            # Kartu baru di meja adalah KARTU DARI TANGAN, BUKAN kata final yang dibentuk
+
             game.card_on_table = hand_card_in_move
             
             score_earned = calculate_score_for_word(final_word)
